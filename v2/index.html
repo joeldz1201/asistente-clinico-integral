@@ -65,7 +65,17 @@ function analyse(){
 const a=$("area").value, region=$("region").value.toLowerCase(),motivo=$("motivo").value.toLowerCase(),text=(region+" "+motivo+" "+$("antecedentes").value+" "+$("hallazgos").value).toLowerCase(),on=id=>!!$(id)?.checked;
 let hypotheses=[],diff=[],alerts=[],missing=[],links=[],next=[],tools=[];
 const add=(title,why,certainty="Hipótesis por comprobar")=>hypotheses.push({title,why,certainty});
-if(a==="rehab"){
+if(a==="dolor"&&/tobillo|maléolo|maleolo/i.test(region)){
+add("Dolor traumático de tobillo por caracterizar","Tras una caída y limitación de movimiento deben examinarse estructuras óseas, ligamentarias, tendinosas y articulares; no se puede confirmar esguince solo con estos datos.");
+diff=["Esguince ligamentario lateral o medial","Fractura maleolar o del mediopié","Lesión sindesmótica","Lesión tendinosa, incluida lesión aquílea","Lesión osteocondral o contusión"];
+links=data.filter(d=>/tobillo/i.test(d.t));
+tools=["Reglas de Ottawa tras explorar puntos óseos y capacidad para dar cuatro pasos","Goniometría de dorsiflexión, flexión plantar, inversión y eversión","Fuerza MRC, sensibilidad, pulsos y marcha","Escala de dolor y función"];
+missing.push("Mecanismo preciso de lesión","Palpación maleolar, navicular y base del quinto metatarsiano","Capacidad para dar cuatro pasos tras lesión y en consulta","Edema, equimosis, deformidad y estado neurovascular");
+if(on("dolTrauma"))alerts.push("Traumatismo: comprobar criterios de Ottawa y descartar fractura antes de recomendar movilización o carga.");
+if(on("dolNeu")||on("dolEsf"))alerts.push("Síntomas neurológicos: explorar función sensitiva y motora distal.");
+if(on("dolFiebre"))alerts.push("Fiebre con dolor articular: valorar infección u otra causa sistémica.");
+next=["Completar exploración regional y criterios de derivación","Una vez descartadas lesiones que requieren atención médica, definir objetivos de dolor, movilidad, carga y función"];
+}else if(a==="rehab"){
 if(/tobillo|esguince|inversi[oó]n/.test(text)||on("rehInversion")){add("Lesión ligamentaria lateral de tobillo","Compatible si se confirma inversión, dolor ligamentario y hallazgos exploratorios; la caída por sí sola no establece esguince.");diff=["Fractura de tobillo o mediopié","Lesión sindesmótica","Lesión del tendón de Aquiles","Lesión osteocondral"];links=data.filter(d=>/tobillo/.test(d.t));tools=["Reglas de Ottawa: requieren localización ósea y capacidad de apoyo; no se calculan con datos incompletos","ROM de dorsiflexión y flexión plantar","Fuerza MRC, balance y pruebas funcionales"];missing.push("Localización exacta del dolor y palpación ósea","Capacidad de apoyar cuatro pasos inmediatamente y durante la valoración","Edema, equimosis, estabilidad y exploración neurovascular");}
 else if(/rodilla/.test(text)){add("Patología musculoesquelética de rodilla","Se requiere distinguir dolor mecánico, lesión traumática y proceso inflamatorio.");diff=["Lesión meniscal","Lesión ligamentaria","Artropatía inflamatoria o infección"];links=data.filter(d=>/Rodilla/.test(d.t));tools=["ROM, fuerza, marcha y función"];missing.push("Inicio traumático, derrame, fiebre y exploración dirigida");}
 else{add("Síndrome musculoesquelético regional por caracterizar","La región y los hallazgos actuales no permiten determinar estructura lesionada.");missing.push(questions[a]);links=data.filter(d=>d.a===a);}
