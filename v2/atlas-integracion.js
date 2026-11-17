@@ -56,7 +56,7 @@ if(a==="dolor"||a==="rehab"){if(!isMSK)return false}
 else if(a!=="todas"&&x.area!==a)return false;
 if(regional&&x.region!==regional)return false;
 if(!q)return true;
-const strictRegion=regionFromSearch(q);if(strictRegion && Object.values(aliases).some(words=>words.some(w=>norm(w)===q)))return x.region===strictRegion;
+const strictRegion=regionFromSearch(q);if(strictRegion && (q===strictRegion||q===norm(names[strictRegion])||q==="muñeca"||q==="torácica"))return x.region===strictRegion;
 const searchable=norm([x.region,names[x.region]||"",x.title,x.code,x.anatomy,x.assessment,x.differentials,x.tools].join(" "));
 return searchable.includes(q)||(regionFromSearch(q)!==""&&x.region===regionFromSearch(q));
 });
@@ -70,7 +70,7 @@ const title=get("atlas");if(!title)return;
 const search=title.querySelector(".two");if(!search)return;
 const div=document.createElement("div");div.className="panel";div.innerHTML='<div class="two"><div><label>Filtrar por región anatómica<select id="atlasRegion"><option value="">Todas las regiones</option>'+Object.entries(names).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join("")+'</select></label></div><div><label>Contenido disponible</label><p id="atlasCounter" class="muted"></p></div></div>';
 search.after(div);
-get("buscar").oninput=renderAtlas;get("filtro").onchange=renderAtlas;get("atlasRegion").onchange=()=>{get("buscar").value="";renderAtlas()};
+get("buscar").oninput=()=>{const reg=regionFromSearch(get("buscar").value);if(reg&&get("atlasRegion").value&&get("atlasRegion").value!==reg)get("atlasRegion").value="";if(reg&&!["todas","dolor","rehab"].includes(get("filtro").value))get("filtro").value="todas";renderAtlas()};get("filtro").onchange=renderAtlas;get("atlasRegion").onchange=()=>{get("buscar").value="";renderAtlas()};
 renderAtlas();
 }
 function selectedFindings(){
