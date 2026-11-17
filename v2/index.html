@@ -33,4 +33,87 @@ $("generar").onclick=()=>{const a=$("area").value;const comunes=[["Edad","edad"]
 $("limpiar").onclick=()=>{document.querySelectorAll("#valoracion input:not([type=file]),#valoracion textarea").forEach(x=>x.value="");$("sexo").value=""};
 $("copiar").onclick=async()=>{try{await navigator.clipboard.writeText($("salida").value);$("estado").textContent="Copiado; verifica anonimización."}catch{$("salida").select();$("estado").textContent="Seleccionado para copia manual."}};
 $("descargar").onclick=()=>{const u=URL.createObjectURL(new Blob([$("salida").value],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=u;a.download="informe_clinico_anonimizado.txt";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};$("imprimir").onclick=()=>window.print();
+</script><style>
+#motor .diagnosis{border-left:4px solid #087e80;background:#f1faf9;padding:14px;margin:10px 0;border-radius:8px}#motor .urgent{border-left-color:#b54636;background:#fff1ef}#motor .missing{border-left-color:#d49a35;background:#fff8e9}.clinical-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.clinical-checks label{font-weight:500;margin:0;padding:12px;border:1px solid #d5e4e4;border-radius:9px;display:flex;gap:9px;align-items:start}.clinical-checks input{width:auto;margin-top:4px}#motor{margin-top:20px}#motor h3{margin-top:20px}#motor p{line-height:1.55}
+</style><script>
+(function(){
+const $=id=>document.getElementById(id);
+const checks={
+dolor:[["dolNeu","Déficit neurológico progresivo"],["dolFiebre","Fiebre o síntomas sistémicos"],["dolEsf","Dolor irradiado o parestesias"],["dolTrauma","Traumatismo reciente"],["dolEsfinter","Alteración de esfínteres o anestesia en silla de montar"]],
+rehab:[["rehInversion","Inversión de tobillo al lesionarse"],["rehOseo","Dolor óseo en zonas relevantes para reglas de Ottawa"],["rehApoyo","Incapacidad para dar cuatro pasos"],["rehEdema","Edema o equimosis"],["rehDeformidad","Deformidad o compromiso neurovascular"],["rehFiebre","Fiebre y articulación caliente"],["rehAquiles","Sospecha de lesión del tendón de Aquiles"]],
+nutricion:[["nutPerdida","Pérdida involuntaria de peso"],["nutDislip","Dislipidemia documentada"],["nutGluc","Glucosa o HbA1c alteradas"],["nutRenal","Enfermedad renal"],["nutTca","Riesgo de trastorno de conducta alimentaria"]],
+enfermeria:[["enfAlergia","Alergia relevante"],["enfInfeccion","Signos de infección"],["enfCaidas","Riesgo de caídas"],["enfPiel","Lesión de piel o riesgo de presión"],["enfMed","Medicamento o procedimiento de alto riesgo"]],
+infusion:[["ivAlergia","Alergia o reacción previa"],["ivFlebitis","Dolor, eritema o flebitis"],["ivExtravas","Infiltración o extravasación"],["ivSobrecarga","Riesgo de sobrecarga de volumen"],["ivCompat","Compatibilidad no verificada"]]
+};
+const questions={
+dolor:"Localización, inicio, patrón temporal, EVA, irradiación, características neuropáticas, sueño, actividad, examen neurológico y banderas rojas.",
+rehab:"Mecanismo exacto, localización ósea, capacidad de apoyo, inspección, palpación, ROM, fuerza, sensibilidad, pulsos, pruebas especiales y función.",
+nutricion:"Edad, peso, talla, cintura, cambios de peso, ingesta, actividad, objetivos, medicación, antecedentes y laboratorios fechados.",
+enfermeria:"Signos vitales, valoración de riesgo, estado funcional, diagnóstico médico, medicación, alergias y recursos de cuidado.",
+infusion:"Orden médica, solución, concentración, velocidad, vía, compatibilidad, función renal/cardiaca y monitorización."
+};
+let lastAnalysis=null;
+function renderArea(){
+const area=$("area").value;
+let box=$("motor");
+if(!box){box=document.createElement("section");box.id="motor";box.className="panel";$("especificos").after(box)}
+box.innerHTML='<h2>Evaluación orientada a decisiones · '+areas[area][0]+'</h2><p class="muted">Selecciona hallazgos presentes. No marcar equivale a dato no confirmado, no a ausencia.</p><div class="clinical-checks">'+checks[area].map(([id,t])=>'<label><input type="checkbox" id="'+id+'"><span>'+t+'</span></label>').join('')+'</div><label>Fecha de valoración<input type="date" id="fechaClinica"></label><label>Exploración y hallazgos negativos relevantes<textarea id="negativos" rows="3" placeholder="Describe también lo que se descartó mediante exploración."></textarea></label><div class="actions"><button class="primary" id="analizarCaso">Analizar hallazgos y vincular biblioteca</button></div><div id="resultadoCaso" aria-live="polite"></div>';
+$("analizarCaso").onclick=analyse;
+}
+const originalSpecial=special;special=function(){originalSpecial();renderArea()};$("area").onchange=special;renderArea();
+function analyse(){
+const a=$("area").value, region=$("region").value.toLowerCase(),motivo=$("motivo").value.toLowerCase(),text=(region+" "+motivo+" "+$("antecedentes").value+" "+$("hallazgos").value).toLowerCase(),on=id=>!!$(id)?.checked;
+let hypotheses=[],diff=[],alerts=[],missing=[],links=[],next=[],tools=[];
+const add=(title,why,certainty="Hipótesis por comprobar")=>hypotheses.push({title,why,certainty});
+if(a==="rehab"){
+if(/tobillo|esguince|inversi[oó]n/.test(text)||on("rehInversion")){add("Lesión ligamentaria lateral de tobillo","Compatible si se confirma inversión, dolor ligamentario y hallazgos exploratorios; la caída por sí sola no establece esguince.");diff=["Fractura de tobillo o mediopié","Lesión sindesmótica","Lesión del tendón de Aquiles","Lesión osteocondral"];links=data.filter(d=>/tobillo/.test(d.t));tools=["Reglas de Ottawa: requieren localización ósea y capacidad de apoyo; no se calculan con datos incompletos","ROM de dorsiflexión y flexión plantar","Fuerza MRC, balance y pruebas funcionales"];missing.push("Localización exacta del dolor y palpación ósea","Capacidad de apoyar cuatro pasos inmediatamente y durante la valoración","Edema, equimosis, estabilidad y exploración neurovascular");}
+else if(/rodilla/.test(text)){add("Patología musculoesquelética de rodilla","Se requiere distinguir dolor mecánico, lesión traumática y proceso inflamatorio.");diff=["Lesión meniscal","Lesión ligamentaria","Artropatía inflamatoria o infección"];links=data.filter(d=>/Rodilla/.test(d.t));tools=["ROM, fuerza, marcha y función"];missing.push("Inicio traumático, derrame, fiebre y exploración dirigida");}
+else{add("Síndrome musculoesquelético regional por caracterizar","La región y los hallazgos actuales no permiten determinar estructura lesionada.");missing.push(questions[a]);links=data.filter(d=>d.a===a);}
+if(on("rehOseo")||on("rehApoyo"))alerts.push("Posible indicación de valoración para radiografía según reglas de Ottawa, solo si cumple sus criterios anatómicos y clínicos completos.");
+if(on("rehDeformidad"))alerts.push("Deformidad o compromiso neurovascular: evaluación médica urgente.");
+if(on("rehFiebre"))alerts.push("Fiebre con articulación caliente: descartar artritis séptica; no iniciar rehabilitación rutinaria.");
+if(on("rehAquiles"))alerts.push("Posible lesión aquílea: evaluación específica y derivación.");
+next=["Completar exploración y criterios de derivación antes de elegir tratamiento","Si no hay alertas, establecer objetivos funcionales y progresión de carga individualizada"];
+}else if(a==="dolor"){
+add("Síndrome doloroso por caracterizar","La localización y el patrón clínico requieren examen físico y neurológico.");if(on("dolEsf")){add("Componente neuropático o radicular posible","La irradiación o parestesias justifican explorar sensibilidad, fuerza y reflejos.");diff.push("Radiculopatía","Neuropatía periférica","Dolor referido no neuropático");}
+if(/lumbar|espalda/.test(text))links=data.filter(d=>/lumbar/.test(d.t));else links=data.filter(d=>d.a==="dolor");
+if(on("dolNeu")||on("dolEsfinter"))alerts.push("Posible compromiso neurológico grave: valoración médica urgente; si hay alteración de esfínteres o anestesia en silla de montar, emergencia.");
+if(on("dolFiebre"))alerts.push("Dolor con fiebre o síntomas sistémicos: descartar infección u otra causa grave.");
+if(on("dolTrauma"))missing.push("Mecanismo de traumatismo y riesgo de fractura");
+diff.push("Dolor nociceptivo musculoesquelético","Dolor neuropático","Dolor referido visceral o sistémico");tools=["EVA y evolución temporal","Examen de sensibilidad, fuerza MRC y reflejos","Escalas de discapacidad específicas por región"];next=["Caracterizar mecanismo del dolor","Documentar funcionalidad y respuesta al manejo multimodal"];
+}else if(a==="nutricion"){
+add("Riesgo nutricional y cardiometabólico por determinar","No es posible diagnosticar solo con el motivo de consulta.");
+if(on("nutDislip"))add("Dislipidemia documentada (confirmar tipo y cifras)","El hallazgo señalado requiere valores y fecha del perfil lipídico.");
+if(on("nutGluc"))add("Alteración glucémica por clasificar","Revisar glucosa, HbA1c, criterios diagnósticos y condiciones de toma.");
+if(on("nutPerdida")||on("nutTca"))alerts.push("Requiere evaluación nutricional ampliada y posible derivación según gravedad.");
+if(on("nutRenal"))alerts.push("Enfermedad renal: no aplicar metas proteicas o de líquidos sin valoración específica.");
+const p=Number($("pesoN")?.value),t=Number($("tallaN")?.value)/100;if(p>0&&t>0){const imc=p/t/t;tools.push("IMC calculado: "+imc.toFixed(1)+" kg/m²; no equivale a composición corporal ni diagnóstico etiológico.");if(imc>=30)add("IMC en rango de obesidad para adultos","Debe contextualizarse con edad, antropometría, composición corporal y evaluación clínica.");}
+diff=["Adiposidad elevada","Dislipidemia primaria o secundaria","Alteración del metabolismo glucémico","Malnutrición según criterios clínicos"];links=data.filter(d=>d.a==="nutricion");missing.push("Laboratorios con unidades y fecha","Historia dietética cuantitativa y actividad","Cintura, tendencia ponderal y objetivos");next=["Definir diagnóstico nutricional PES tras reunir evidencia","Estimar requerimientos con método explícito y ajustar según seguimiento"];
+}else if(a==="enfermeria"){
+add("Necesidades de cuidado por determinar","Requiere valoración integral, prioridades y diagnósticos de enfermería sustentados.");
+if(on("enfInfeccion"))alerts.push("Posible infección: valorar signos sistémicos, gravedad y derivación.");
+if(on("enfAlergia"))alerts.push("Verificar alergia antes de cualquier administración.");
+if(on("enfMed"))alerts.push("Medicamento o procedimiento de alto riesgo: verificación independiente según protocolo.");
+diff=["Riesgo de infección","Deterioro de la integridad cutánea","Riesgo de caídas"];links=data.filter(d=>d.a==="enfermeria");tools=["Escalas de riesgo validadas según contexto","Signos vitales y valoración funcional"];next=["Formular diagnósticos de enfermería basados en datos","Definir intervenciones, resultados y reevaluación"];
+}else{
+add("Indicación de terapia IV pendiente de validar","No puede proponerse una infusión sin orden, composición y evaluación de riesgos.");
+if(on("ivExtravas")||on("ivFlebitis"))alerts.push("Posible complicación del acceso: detener o reevaluar la infusión según protocolo y escalar.");
+if(on("ivAlergia"))alerts.push("Ante reacción alérgica aguda, activar protocolo de emergencia.");
+if(on("ivCompat"))alerts.push("Compatibilidad no verificada: no administrar la mezcla.");
+if(on("ivSobrecarga"))alerts.push("Riesgo de sobrecarga: requiere valoración y prescripción individual.");
+diff=["Flebitis","Infiltración o extravasación","Reacción de hipersensibilidad"];links=data.filter(d=>d.a==="infusion");tools=["Lista de verificación de acceso y administración","Vigilancia de signos vitales y sitio de punción"];next=["Verificar orden, indicación y compatibilidad en fuentes farmacológicas","Documentar vigilancia y respuesta"];
+}
+if(!v("edad")||v("edad")==="No registrado")missing.unshift("Edad del paciente");
+if(!v("hallazgos")||v("hallazgos")==="No registrado"||/^(ninguno|no)$/i.test(v("hallazgos")))missing.unshift("Exploración objetiva y signos vitales (no se consideran normales por omisión)");
+if(!hypotheses.length)add("Información insuficiente para una hipótesis específica","Se requiere ampliar evaluación.");
+lastAnalysis={a,hypotheses,diff,alerts,missing,links,next,tools};
+const safe=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const list=arr=>'<ul>'+arr.map(s=>'<li>'+safe(s)+'</li>').join("")+'</ul>';
+$("resultadoCaso").innerHTML='<h3>Resultado de orientación clínica</h3>'+(alerts.length?'<div class="diagnosis urgent"><b>Alertas / derivación</b>'+list(alerts)+'</div>':'<div class="diagnosis"><b>Sin alertas marcadas.</b> Esto no significa que estén descartadas: verificar exploración y respuestas negativas.</div>')+'<h3>Hipótesis razonadas (no diagnósticos confirmados)</h3>'+hypotheses.map(d=>'<div class="diagnosis"><b>'+safe(d.title)+'</b><p>'+safe(d.why)+'</p><small>'+safe(d.certainty)+'</small></div>').join("")+'<h3>Diagnósticos diferenciales</h3>'+list(diff)+'<h3>Datos críticos faltantes</h3><div class="diagnosis missing">'+list(missing)+'</div><h3>Herramientas relevantes para este caso</h3>'+list(tools)+'<h3>Biblioteca vinculada</h3>'+links.map(d=>'<div class="diagnosis"><b>'+safe(d.t)+'</b><p>'+safe(d.ev)+'</p><details><summary>Intervención, dosificación y seguimiento</summary><p>'+safe(d.trat)+'</p><p>'+safe(d.dosis)+'</p><p>'+safe(d.seg)+'</p></details></div>').join("")+'<h3>Siguientes pasos</h3>'+list(next)+'<div class="actions"><button id="abrirInformeCaso" class="primary">Crear informe con este análisis</button><button id="abrirAtlasCaso">Consultar biblioteca completa</button></div>';
+$("abrirInformeCaso").onclick=()=>{ $("generar").click();$("salida").value+="\n\nANÁLISIS ORIENTATIVO VINCULADO\n"+hypotheses.map(x=>x.title+": "+x.why).join("\n")+"\nDIFERENCIALES\n"+diff.join("\n")+"\nALERTAS\n"+(alerts.join("\n")||"No marcadas; no descartadas")+"\nDATOS FALTANTES\n"+missing.join("\n")+"\nHERRAMIENTAS\n"+tools.join("\n")+"\nBIBLIOTECA VINCULADA\n"+links.map(x=>x.t+"\n"+x.trat+"\n"+x.dosis+"\n"+x.seg).join("\n")+"\nSIGUIENTES PASOS\n"+next.join("\n")};
+$("abrirAtlasCaso").onclick=()=>{$("filtro").value=a;$("buscar").value=links[0]?.t.split(":")[0].split(" ")[0]||"";render();go("atlas")};
+$("resultadoCaso").scrollIntoView({behavior:"smooth",block:"start"});
+}
+const originalGenerate=$("generar").onclick;$("generar").onclick=()=>{if(!lastAnalysis||lastAnalysis.a!==$("area").value){analyse()}const btn=$("abrirInformeCaso");if(btn){btn.click()}else originalGenerate()};
+})();
 </script></body></html>
