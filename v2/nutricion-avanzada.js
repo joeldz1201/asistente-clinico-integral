@@ -14,6 +14,7 @@ const ids=["nConsulta","nObjetivo","nEmbarazo","nERC","nIC","nTCA","nDeportista"
 function mount(){
 if(!$("valoracion")||!$("especificos"))return;
 const active=V("area")==="nutricion";
+const title=$("valoracion")?.querySelector("h1");if(title)title.textContent=active?"Nutrición clínica y deportiva · Valoración integral":"Valoración clínica por especialidad";
 const regionWrap=$("region")?.parentElement;
 if(regionWrap)regionWrap.style.display=active?"none":"";
 const commonTitles=[["motivo","Motivo y evolución nutricional"],["antecedentes","Antecedentes, alergias y medicación"],["hallazgos","Signos vitales y hallazgos clínicos"],["estudios","Otros estudios o resultados"],["previos","Intervenciones nutricionales anteriores y respuesta"],["objetivos","Objetivos clínicos y acuerdos con el paciente"]];
