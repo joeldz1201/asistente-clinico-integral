@@ -96,6 +96,7 @@ return n;
 return conditions.map(x=>({...x,priority:score(x)})).sort((a,b)=>b.priority-a.priority);
 }
 function renderAnalysis(){
+if(get('area').value==='nutricion'&&window.ClinicalNutrition){window.ClinicalNutrition.analyze();return;}
 const a=get("area").value,reg=regionFromCase(),name=names[reg]||"No identificada",p=selectedFindings();
 const lines=p.map(x=>Array.isArray(x)?x[0]:x);
 const positives=p.filter(Array.isArray);
@@ -129,6 +130,7 @@ out.scrollIntoView({block:"start",behavior:"smooth"});
 }
 function reportValue(id){const x=get(id);return x&&String(x.value||"").trim()?x.value.trim():"No documentado"}
 function buildReport(){
+if(get('area').value==='nutricion'&&window.ClinicalNutrition){window.ClinicalNutrition.report();return;}
 if(!current||current.a!==get("area").value||current.reg!==regionFromCase())renderAnalysis();
 if(!current)return;
 const c=current;
@@ -143,6 +145,7 @@ lines.push("","PRIVACIDAD: retirar identificadores antes de compartir. Esta plat
 get("salida").value=lines.join("\n");document.querySelector('[data-go="informe"]').click();
 }
 function refreshTools(){
+if(get('area')?.value==='nutricion'&&window.ClinicalNutrition){window.ClinicalNutrition.tool();return;}
 const area=get("area")?.value||"rehab",reg=regionFromCase(),root=get("herramientas");if(!root)return;
 let top=get("herrContext");if(!top){top=document.createElement("div");top.id="herrContext";top.className="panel";root.querySelector("h1")?.after(top)}
 const items=atlas.filter(x=>x.region===reg);
