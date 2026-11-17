@@ -53,19 +53,45 @@ enfermeria:"Signos vitales, valoración de riesgo, estado funcional, diagnóstic
 infusion:"Orden médica, solución, concentración, velocidad, vía, compatibilidad, función renal/cardiaca y monitorización."
 };
 let lastAnalysis=null;
+const regionalChecks={
+lumbar:[["lumTrauma","Traumatismo significativo"],["lumFiebre","Fiebre, infección o inmunosupresión"],["lumCauda","Retención urinaria nueva, anestesia en silla de montar o alteración esfinteriana"],["lumDeficit","Déficit motor progresivo"],["lumRad","Dolor irradiado a miembro inferior"],["lumParest","Parestesias o cambios sensitivos"],["lumClaud","Síntomas al caminar que mejoran al flexionar el tronco"],["lumMecanico","Dolor relacionado con movimiento o carga"]],
+cervical:[["cerTrauma","Traumatismo cervical"],["cerMielo","Alteración de marcha, destreza manual o signos de mielopatía"],["cerDef","Déficit neurológico progresivo"],["cerRad","Irradiación al brazo o parestesias"],["cerFiebre","Fiebre o síntomas sistémicos"],["cerMov","Dolor con movimiento cervical"]],
+rodilla:[["rodTrauma","Traumatismo o giro de rodilla"],["rodDerrame","Derrame articular"],["rodBloq","Bloqueo mecánico"],["rodInest","Sensación de inestabilidad"],["rodFiebre","Articulación caliente con fiebre"],["rodApoyo","Incapacidad de apoyo"]],
+tobillo:[["rehInversion","Inversión al lesionarse"],["rehOseo","Dolor óseo en puntos relevantes de Ottawa"],["rehApoyo","Incapacidad para dar cuatro pasos"],["rehEdema","Edema o equimosis"],["rehDeformidad","Deformidad o compromiso neurovascular"],["rehFiebre","Fiebre y articulación caliente"],["rehAquiles","Sospecha de lesión del tendón de Aquiles"]],
+hombro:[["homTrauma","Traumatismo"],["homDeb","Debilidad marcada"],["homElev","Dolor o limitación al elevar brazo"],["homInest","Luxación o inestabilidad"],["homFiebre","Fiebre o articulación caliente"]],
+cadera:[["cadCaida","Caída o traumatismo"],["cadCarga","Incapacidad de cargar peso"],["cadIngle","Dolor inguinal"],["cadFiebre","Fiebre o articulación caliente"]],
+muneca:[["munTrauma","Caída sobre mano extendida"],["munEsc","Dolor en tabaquera anatómica"],["munNeu","Parestesias o déficit sensitivo"],["munDeform","Deformidad o compromiso vascular"]],
+codo:[["codTrauma","Traumatismo"],["codExt","Incapacidad para extender codo"],["codNeu","Parestesias en mano"],["codFiebre","Articulación caliente o fiebre"]]
+};
+function getRegion(){const r=$("region").value.toLowerCase();if(/lumbar|espalda baja|lumbosacra/.test(r))return "lumbar";if(/cervical|cuello/.test(r))return "cervical";if(/tobillo|maleolo|maléolo|pie/.test(r))return "tobillo";if(/rodilla/.test(r))return "rodilla";if(/hombro/.test(r))return "hombro";if(/cadera|pelvis/.test(r))return "cadera";if(/muñeca|mano/.test(r))return "muneca";if(/codo/.test(r))return "codo";return "";}
 function renderArea(){
-const area=$("area").value;
+const area=$("area").value,region=getRegion();
 let box=$("motor");
 if(!box){box=document.createElement("section");box.id="motor";box.className="panel";$("especificos").after(box)}
-box.innerHTML='<h2>Evaluación orientada a decisiones · '+areas[area][0]+'</h2><p class="muted">Selecciona hallazgos presentes. No marcar equivale a dato no confirmado, no a ausencia.</p><div class="clinical-checks">'+checks[area].map(([id,t])=>'<label><input type="checkbox" id="'+id+'"><span>'+t+'</span></label>').join('')+'</div><label>Fecha de valoración<input type="date" id="fechaClinica"></label><label>Exploración y hallazgos negativos relevantes<textarea id="negativos" rows="3" placeholder="Describe también lo que se descartó mediante exploración."></textarea></label><div class="actions"><button class="primary" id="analizarCaso">Analizar hallazgos y vincular biblioteca</button></div><div id="resultadoCaso" aria-live="polite"></div>';
+const regionMode=(area==="rehab"||area==="dolor")&&regionalChecks[region];
+const choices=regionMode?regionalChecks[region]:checks[area];
+box.innerHTML='<h2>Evaluación orientada a decisiones · '+areas[area][0]+'</h2><p class="muted">'+(regionMode?'Región anatómica: '+region.toUpperCase()+'. Evaluación específica; los hallazgos no marcados permanecen sin confirmar.':'Selecciona hallazgos presentes. No marcar equivale a dato no confirmado, no a ausencia.')+'</p><div class="clinical-checks">'+choices.map(([id,t])=>'<label><input type="checkbox" id="'+id+'"><span>'+t+'</span></label>').join('')+'</div><label>Fecha de valoración<input type="date" id="fechaClinica"></label><label>Exploración y hallazgos negativos relevantes<textarea id="negativos" rows="3" placeholder="Describe también lo que se descartó mediante exploración."></textarea></label><div class="actions"><button class="primary" id="analizarCaso">Analizar hallazgos y vincular biblioteca</button></div><div id="resultadoCaso" aria-live="polite"></div>';
 $("analizarCaso").onclick=analyse;
 }
-const originalSpecial=special;special=function(){originalSpecial();renderArea()};$("area").onchange=special;renderArea();
+const originalSpecial=special;special=function(){originalSpecial();renderArea()};$("area").onchange=special;$("region").addEventListener("input",renderArea);renderArea();
 function analyse(){
 const a=$("area").value, region=$("region").value.toLowerCase(),motivo=$("motivo").value.toLowerCase(),text=(region+" "+motivo+" "+$("antecedentes").value+" "+$("hallazgos").value).toLowerCase(),on=id=>!!$(id)?.checked;
 let hypotheses=[],diff=[],alerts=[],missing=[],links=[],next=[],tools=[];
 const add=(title,why,certainty="Hipótesis por comprobar")=>hypotheses.push({title,why,certainty});
-if(a==="dolor"&&/tobillo|maléolo|maleolo/i.test(region)){
+if((a==="dolor"||a==="rehab")&&getRegion()==="lumbar"){
+add("Síndrome lumbar por caracterizar","El dolor lumbar requiere caracterizar patrón mecánico, neurológico y banderas rojas; los hallazgos aislados no confirman una etiología.");
+diff=["Dolor lumbar inespecífico musculoesquelético","Dolor radicular lumbar o radiculopatía si hay signos neurológicos","Estenosis lumbar si hay claudicación neurógena","Fractura, infección u otra causa específica según factores de riesgo"];
+if(on("lumRad")||on("lumParest"))add("Posible componente radicular","Irradiación o alteraciones sensitivas requieren examen de dermatomas, miotomas, reflejos y pruebas neurodinámicas.");
+if(on("lumClaud"))add("Posible claudicación neurógena","Se requiere caracterizar relación con marcha, postura y alivio en flexión.");
+if(on("lumCauda"))alerts.push("Síntomas compatibles con posible síndrome de cauda equina: evaluación urgente.");
+if(on("lumDeficit"))alerts.push("Déficit motor progresivo: evaluación médica urgente.");
+if(on("lumFiebre"))alerts.push("Fiebre o factores de infección: descartar causa infecciosa.");
+if(on("lumTrauma"))alerts.push("Traumatismo: valorar riesgo de fractura según contexto.");
+missing.push("Duración, distribución del dolor y factores agravantes/aliviantes","Exploración neurológica: miotomas, dermatomas, reflejos y marcha","Evaluación de síntomas esfinterianos, anestesia perineal y déficit progresivo","Limitación funcional, actividad y objetivos");
+tools=["EVA o escala numérica de dolor","Oswestry Disability Index o Roland-Morris para discapacidad lumbar","ROM lumbar y evaluación de movimientos funcionales","Exploración neurológica y pruebas de elevación de pierna recta/Slump según hipótesis"];
+links=data.filter(d=>/lumbar/i.test(d.t));
+next=["Completar banderas rojas y exploración neurológica antes de intervención","Si no hay criterios de derivación, educación, actividad tolerada y ejercicio progresivo individualizado"];
+}else if(a==="dolor"&&/tobillo|maléolo|maleolo/i.test(region)){
 add("Dolor traumático de tobillo por caracterizar","Tras una caída y limitación de movimiento deben examinarse estructuras óseas, ligamentarias, tendinosas y articulares; no se puede confirmar esguince solo con estos datos.");
 diff=["Esguince ligamentario lateral o medial","Fractura maleolar o del mediopié","Lesión sindesmótica","Lesión tendinosa, incluida lesión aquílea","Lesión osteocondral o contusión"];
 links=data.filter(d=>/tobillo/i.test(d.t));
