@@ -44,6 +44,7 @@ group.after(block);
 }
 current=null;
 get("resultadoCaso").innerHTML="";
+get("analizarCaso").onclick=renderAnalysis;
 refreshTools();
 }
 function allClinicalCards(){const original=(typeof data==="undefined"?[]:data).filter(x=>!["dolor","rehab"].includes(x.a));return atlas.concat(original.map((x,i)=>({id:"general-"+i,region:"",title:x.t,code:x.c,anatomy:x.an,assessment:x.ev,differentials:"Requiere evaluación individual",alerts:x.alert,treatment:x.trat,dose:x.dosis,followup:x.seg,tools:"Evaluación según especialidad",source:"https://pubmed.ncbi.nlm.nih.gov/?term="+encodeURIComponent(x.q),area:x.a})))}
@@ -55,6 +56,7 @@ if(a==="dolor"||a==="rehab"){if(!isMSK)return false}
 else if(a!=="todas"&&x.area!==a)return false;
 if(regional&&x.region!==regional)return false;
 if(!q)return true;
+const strictRegion=regionFromSearch(q);if(strictRegion && Object.values(aliases).some(words=>words.some(w=>norm(w)===q)))return x.region===strictRegion;
 const searchable=norm([x.region,names[x.region]||"",x.title,x.code,x.anatomy,x.assessment,x.differentials,x.tools].join(" "));
 return searchable.includes(q)||(regionFromSearch(q)!==""&&x.region===regionFromSearch(q));
 });
